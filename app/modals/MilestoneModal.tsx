@@ -101,6 +101,7 @@ const MilestoneModal = ({
             setDatePickerVisibility(false);
           }}
           onCancel={() => setDatePickerVisibility(false)}
+          maximumDate={new Date()}
         />
 
         <View style={styles.typeSection}>

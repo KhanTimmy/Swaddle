@@ -251,6 +251,19 @@ export const ChildService = {
       
       const docRef = await addDoc(collection(db, 'children'), docData);
       console.log(`...[addChild] child created: ${docRef.id}`);
+      
+      // If weight is provided, also add it to the weight subcollection
+      if (childData.weight) {
+        const birthDate = new Date(childData.dob);
+        await addDoc(collection(db, 'children', docRef.id, 'weight'), {
+          dateTime: birthDate,
+          pounds: childData.weight.pounds,
+          ounces: childData.weight.ounces
+        });
+        console.log(`...[addChild] initial weight added to subcollection for child: ${docRef.id}`);
+        await clearChildCache(docRef.id);
+      }
+      
       return {
         first_name: childData.first_name,
         last_name: childData.last_name,

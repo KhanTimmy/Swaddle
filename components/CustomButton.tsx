@@ -29,7 +29,7 @@ export default function CustomButton({
   };
 
   const textColors: Record<string, string> = {
-    primary: theme.text,
+    primary: '#F9FAFB', // Fixed color (dark mode text color) - doesn't change with theme
     secondary: '#fff',
     danger: '#fff',
     success: '#fff',

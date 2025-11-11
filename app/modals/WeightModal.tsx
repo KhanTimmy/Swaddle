@@ -168,6 +168,7 @@ const WeightModal = ({
             setDatePickerVisibility(false);
           }}
           onCancel={() => setDatePickerVisibility(false)}
+          maximumDate={new Date()}
         />
 
         {currentWeight && (

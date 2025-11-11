@@ -6,8 +6,7 @@ import { db } from '@/firebase.config';
 import { router } from 'expo-router';
 import CustomButton from '@/components/CustomButton';
 import AnimatedCloudBackground from '@/components/AnimatedCloudBackground';
-import Colors from "@/constants/Colors";
-import { useColorScheme } from 'react-native';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function AddCaregiver() {
@@ -15,8 +14,7 @@ export default function AddCaregiver() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'light'];
+  const { theme } = useTheme();
 
   const handleAddCaregiver = async () => {
     setError('');
@@ -111,7 +109,7 @@ export default function AddCaregiver() {
                     />
                   </View>
 
-                  <View style={[styles.infoContainer, { backgroundColor: 'rgba(92, 184, 228, 0.1)', borderColor: theme.primary }]}>
+                  <View style={[styles.infoContainer, { backgroundColor: theme.cardBackground, borderColor: theme.primary }]}>
                     <Ionicons name="information-circle" size={20} color={theme.primary} />
                     <Text style={[styles.infoText, { color: theme.text }]}>
                       The caregiver will receive access to view and update your child's information. They will need to create an account with the same email address.
@@ -130,7 +128,11 @@ export default function AddCaregiver() {
                       title="Add Caregiver"
                       onPress={handleAddCaregiver}
                       variant={isInputValid ? "primary" : "secondary"}
-                      style={!isInputValid ? styles.disabledButton : undefined}
+                      style={{
+                        ...styles.buttonBorder,
+                        borderColor: theme.text,
+                        ...(!isInputValid ? styles.disabledButton : {})
+                      }}
                       disabled={!isInputValid}
                     />
                   )}
@@ -139,7 +141,11 @@ export default function AddCaregiver() {
                     title="Cancel"
                     onPress={() => router.back()}
                     variant="secondary"
-                    style={styles.cancelButton}
+                    style={{
+                      ...styles.buttonBorder,
+                      ...styles.cancelButton,
+                      borderColor: theme.text
+                    }}
                   />
                 </View>
               </View>
@@ -253,6 +259,10 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.6,
+  },
+  buttonBorder: {
+    borderWidth: 2,
+    borderRadius: 12,
   },
   cancelButton: {
     marginTop: 20,

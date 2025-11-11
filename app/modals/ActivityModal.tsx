@@ -145,6 +145,7 @@ const ActivityModal = ({
             setDatePickerVisibility(false);
           }}
           onCancel={() => setDatePickerVisibility(false)}
+          maximumDate={new Date()}
         />
 
         <View style={styles.inputSection}>

@@ -209,6 +209,7 @@ const DiaperModal = ({
             setDatePickerVisibility(false);
           }}
           onCancel={() => setDatePickerVisibility(false)}
+          maximumDate={new Date()}
         />
 
         <View style={styles.typeSection}>

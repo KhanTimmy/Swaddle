@@ -229,7 +229,11 @@ export default function AccessScreen() {
                     onPress={() => {
                       router.push('/addcaregiver');
                       console.log('Add new authorized user');
-                    }} 
+                    }}
+                    style={{
+                      ...styles.buttonBorder,
+                      borderColor: theme.text
+                    }}
                   />
                 </View>
               )}
@@ -247,6 +251,10 @@ export default function AccessScreen() {
                 title="Back"
                 onPress={() => router.back()}
                 variant="secondary"
+                style={{
+                  ...styles.buttonBorder,
+                  borderColor: theme.text
+                }}
               />
               </View>
             </TouchableWithoutFeedback>
@@ -394,5 +402,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  buttonBorder: {
+    borderWidth: 2,
+    borderRadius: 12,
   },
 });

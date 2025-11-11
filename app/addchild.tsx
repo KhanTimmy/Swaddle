@@ -188,34 +188,39 @@ export default function AddChild() {
                 </View>
 
                 <View style={styles.inputContainer}>
-                  <View style={styles.radioGroup}>
-                    <TouchableOpacity
-                      style={styles.radioOption}
-                      onPress={() => setSex('male')}
-                    >
-                      <View style={[
-                        styles.radioCircle, 
-                        { borderColor: theme.primary },
-                        sex === 'male' && { borderColor: theme.primary }
-                      ]}>
-                        {sex === 'male' && <View style={[styles.radioInner, { backgroundColor: theme.primary }]} />}
-                      </View>
-                      <Text style={[styles.radioText, { color: theme.text }]}>Male</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity
-                      style={styles.radioOption}
-                      onPress={() => setSex('female')}
-                    >
-                      <View style={[
-                        styles.radioCircle, 
-                        { borderColor: theme.primary },
-                        sex === 'female' && { borderColor: theme.primary }
-                      ]}>
-                        {sex === 'female' && <View style={[styles.radioInner, { backgroundColor: theme.primary }]} />}
-                      </View>
-                      <Text style={[styles.radioText, { color: theme.text }]}>Female</Text>
-                    </TouchableOpacity>
+                  <View style={[styles.radioGroupContainer, { 
+                    backgroundColor: theme.cardBackground,
+                    borderColor: theme.primary
+                  }]}>
+                    <View style={styles.radioGroup}>
+                      <TouchableOpacity
+                        style={styles.radioOption}
+                        onPress={() => setSex('male')}
+                      >
+                        <View style={[
+                          styles.radioCircle, 
+                          { borderColor: theme.primary },
+                          sex === 'male' && { borderColor: theme.primary }
+                        ]}>
+                          {sex === 'male' && <View style={[styles.radioInner, { backgroundColor: theme.primary }]} />}
+                        </View>
+                        <Text style={[styles.radioText, { color: theme.text }]}>Male</Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity
+                        style={styles.radioOption}
+                        onPress={() => setSex('female')}
+                      >
+                        <View style={[
+                          styles.radioCircle, 
+                          { borderColor: theme.primary },
+                          sex === 'female' && { borderColor: theme.primary }
+                        ]}>
+                          {sex === 'female' && <View style={[styles.radioInner, { backgroundColor: theme.primary }]} />}
+                        </View>
+                        <Text style={[styles.radioText, { color: theme.text }]}>Female</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
 
@@ -266,7 +271,11 @@ export default function AddChild() {
                     title="Save Child" 
                     onPress={saveChild} 
                     variant={isFormValid ? "primary" : "secondary"}
-                    style={!isFormValid ? styles.disabledButton : undefined}
+                    style={{
+                      ...styles.buttonBorder,
+                      borderColor: theme.text,
+                      ...(!isFormValid ? styles.disabledButton : {})
+                    }}
                     disabled={!isFormValid}
                   />
                 )}
@@ -275,7 +284,11 @@ export default function AddChild() {
                   title="Cancel" 
                   onPress={() => router.back()} 
                   variant="secondary"
-                  style={styles.cancelButton}
+                  style={{
+                    ...styles.buttonBorder,
+                    ...styles.cancelButton,
+                    borderColor: theme.text
+                  }}
                 />
               </View>
 
@@ -385,11 +398,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
+  radioGroupContainer: {
+    width: '100%',
+    borderWidth: 2,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
   radioGroup: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
-    marginTop: 4,
   },
   radioOption: {
     flexDirection: 'row',
@@ -426,6 +445,10 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.6,
+  },
+  buttonBorder: {
+    borderWidth: 2,
+    borderRadius: 12,
   },
   cancelButton: {
     marginTop: 20,

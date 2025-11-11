@@ -154,6 +154,7 @@ const SleepModal = ({
             setStartPickerVisibility(false);
           }}
           onCancel={() => setStartPickerVisibility(false)}
+          maximumDate={new Date()}
         />
 
         <View>
@@ -178,6 +179,7 @@ const SleepModal = ({
             setEndPickerVisibility(false);
           }}
           onCancel={() => setEndPickerVisibility(false)}
+          maximumDate={new Date()}
         />
 
         <View>

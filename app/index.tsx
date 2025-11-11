@@ -153,7 +153,7 @@ const index = () => {
                     variant={isInputValid ? "primary" : "secondary"}
                     style={{
                       ...styles.buttonBorder,
-                      borderColor: theme.primary,
+                      borderColor: theme.text,
                       ...(!isInputValid ? styles.disabledButton : {})
                     }}
                     disabled={!isInputValid}
@@ -167,7 +167,7 @@ const index = () => {
                   style={{
                     ...styles.buttonBorder,
                     ...styles.registerButton,
-                    borderColor: theme.primary
+                    borderColor: theme.text
                   }}
                 />
               </View>
