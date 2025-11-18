@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getAuth } from 'firebase/auth';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSelectedChild } from '@/hooks/useSelectedChild';
 import { ChildService, ChildData, SleepData, FeedData, DiaperData, ActivityData, MilestoneData, WeightData } from '@/services/ChildService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -56,6 +57,12 @@ export default function Home() {
     });
     return unsubscribeAuth;
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchUserChildrenList();
+    }, [])
+  );
 
   useEffect(() => {
     if (selectedChild) {

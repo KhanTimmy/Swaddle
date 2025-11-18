@@ -255,26 +255,39 @@ export const filteredSleepData = (rawSleepData: SleepData[], rangeDays: number) 
 };
 
 export const processSleepData = (rawSleepData: SleepData[], rangeDays: number) => {
+  // Use local calendar-day boundaries for bucketing so sleep sessions
+  // don't shift into adjacent days due to UTC/local conversions.
   const now = new Date();
-  const startDate = new Date(now);
-  startDate.setDate(now.getDate() - rangeDays + 1);
-  startDate.setHours(0, 0, 0, 0);
 
-  const allDates = Array.from({ length: rangeDays }, (_, i) => {
-    const date = new Date(startDate);
-    date.setDate(startDate.getDate() + i);
-    return date.toISOString().split('T')[0];
+  // Start at local midnight rangeDays-1 days ago
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startDate = new Date(startOfToday);
+  startDate.setDate(startOfToday.getDate() - rangeDays + 1);
+
+  // Build an array of day buckets with explicit local start/end and a stable string key
+  const allDays = Array.from({ length: rangeDays }, (_, i) => {
+    const dayStart = new Date(startDate);
+    dayStart.setDate(startDate.getDate() + i);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayStart.getDate() + 1);
+
+    // Format YYYY-MM-DD using local date parts to avoid UTC shifts
+    const dateKey = [
+      dayStart.getFullYear(),
+      String(dayStart.getMonth() + 1).padStart(2, '0'),
+      String(dayStart.getDate()).padStart(2, '0'),
+    ].join('-');
+
+    return { dateKey, dayStart, dayEnd };
   });
 
-  return allDates.map(dateStr => {
-    const currentDate = new Date(dateStr);
-    const nextDate = new Date(currentDate);
-    nextDate.setDate(currentDate.getDate() + 1);
-
-    const daysSleeps = rawSleepData.filter(sleep => {
-      const sleepStart = new Date(sleep.start);
-      return sleepStart >= currentDate && sleepStart < nextDate;
-    }).sort((a, b) => a.start.getTime() - b.start.getTime());
+  return allDays.map(({ dateKey, dayStart, dayEnd }) => {
+    const daysSleeps = rawSleepData
+      .filter(sleep => {
+        const sleepStart = new Date(sleep.start);
+        return sleepStart >= dayStart && sleepStart < dayEnd;
+      })
+      .sort((a, b) => a.start.getTime() - b.start.getTime());
 
     let totalDuration = 0;
     const sleepSessions = daysSleeps.map(sleep => {
@@ -289,7 +302,7 @@ export const processSleepData = (rawSleepData: SleepData[], rangeDays: number) =
     });
 
     const stackedData = sleepSessions.map((session, index) => ({
-      x: dateStr,
+      x: dateKey,
       y: Math.min(session.duration, MAX_SLEEP_HOURS),
       quality: session.quality,
       sessionIndex: index,
@@ -298,7 +311,7 @@ export const processSleepData = (rawSleepData: SleepData[], rangeDays: number) =
     }));
 
     return {
-      date: dateStr,
+      date: dateKey,
       totalDuration: Math.min(totalDuration, MAX_SLEEP_HOURS),
       actualDuration: totalDuration,
       sessions: stackedData,

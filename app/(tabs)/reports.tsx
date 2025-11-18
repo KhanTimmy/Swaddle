@@ -17,6 +17,7 @@ import WeightModal from '../modals/WeightModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import CornerIndicators from '@/components/CornerIndicators';
 import AnimatedCloudBackground from '@/components/AnimatedCloudBackground';
+import { useFocusEffect } from '@react-navigation/native';
 
 
 export default function Reports() {
@@ -55,6 +56,12 @@ export default function Reports() {
     });
     return unsubscribeAuth;
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchUserChildrenList();
+    }, [])
+  );
 
   const fetchUserChildrenList = async () => {
     try {
@@ -122,6 +129,7 @@ export default function Reports() {
   }, [selectedChild]);
 
   const { theme } = useTheme();
+  const isAuthorizedCaregiver = selectedChild?.type === 'Authorized';
 
   const handleEditRequest = (args: { type: TrendType; payload: any }) => {
     setEditContext({ type: args.type, entry: args.payload });
@@ -295,20 +303,28 @@ export default function Reports() {
         </View>
 
         <View style={styles.graphSection}>
-          <View style={[styles.graphContainer, { backgroundColor: theme.secondaryBackground }]}>
-            <UnifiedDataGraph
-              sleepData={sleeps}
-              feedData={feedings}
-              diaperData={diapers}
-              activityData={activities}
-              milestoneData={milestones}
-              weightData={weights}
-              rangeDays={rangeDays}
-              activeDataType={selectedTrend}
-              onEditRequest={handleEditRequest}
-              dataVersion={dataVersion}
-            />
-          </View>
+          {selectedChild && isAuthorizedCaregiver ? (
+            <View style={[styles.restrictedMessageContainer, { backgroundColor: theme.secondaryBackground }]}>
+              <Text style={[styles.restrictedMessageText, { color: theme.text }]}>
+                To view reports for this section, you need to be this child's parent.
+              </Text>
+            </View>
+          ) : (
+            <View style={[styles.graphContainer, { backgroundColor: theme.secondaryBackground }]}>
+              <UnifiedDataGraph
+                sleepData={sleeps}
+                feedData={feedings}
+                diaperData={diapers}
+                activityData={activities}
+                milestoneData={milestones}
+                weightData={weights}
+                rangeDays={rangeDays}
+                activeDataType={selectedTrend}
+                onEditRequest={handleEditRequest}
+                dataVersion={dataVersion}
+              />
+            </View>
+          )}
         </View>
           </View>
         </SafeAreaView>
@@ -419,5 +435,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  restrictedMessageContainer: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  restrictedMessageText: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

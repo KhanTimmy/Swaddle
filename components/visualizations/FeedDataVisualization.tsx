@@ -4,7 +4,7 @@ import { VictoryChart, VictoryBar, VictoryAxis, VictoryStack, VictoryContainer }
 import { FeedData } from '@/services/ChildService';
 import { useTheme } from '@/contexts/ThemeContext';
 
-const MAX_FEED_DURATION = 60;
+const MAX_FEED_DURATION = 90;
 const screenWidth = Dimensions.get('window').width;
 
 export interface FeedSession {
@@ -286,26 +286,39 @@ export const filteredFeedData = (rawFeedData: FeedData[], rangeDays: number) => 
 };
 
 export const processFeedData = (rawFeedData: FeedData[], rangeDays: number) => {
+  // Use local calendar-day boundaries for bucketing so feeds don't "bleed"
+  // into adjacent days due to timezone conversion between UTC and local time.
   const now = new Date();
-  const startDate = new Date(now);
-  startDate.setDate(now.getDate() - rangeDays + 1);
-  startDate.setHours(0, 0, 0, 0);
 
-  const allDates = Array.from({ length: rangeDays }, (_, i) => {
-    const date = new Date(startDate);
-    date.setDate(startDate.getDate() + i);
-    return date.toISOString().split('T')[0];
+  // Start at local midnight rangeDays-1 days ago
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startDate = new Date(startOfToday);
+  startDate.setDate(startOfToday.getDate() - rangeDays + 1);
+
+  // Build an array of day buckets with explicit local start/end and a stable string key
+  const allDays = Array.from({ length: rangeDays }, (_, i) => {
+    const dayStart = new Date(startDate);
+    dayStart.setDate(startDate.getDate() + i);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayStart.getDate() + 1);
+
+    // Format YYYY-MM-DD using local date parts to avoid UTC shifts
+    const dateKey = [
+      dayStart.getFullYear(),
+      String(dayStart.getMonth() + 1).padStart(2, '0'),
+      String(dayStart.getDate()).padStart(2, '0'),
+    ].join('-');
+
+    return { dateKey, dayStart, dayEnd };
   });
 
-  return allDates.map(dateStr => {
-    const currentDate = new Date(dateStr);
-    const nextDate = new Date(currentDate);
-    nextDate.setDate(currentDate.getDate() + 1);
-
-    const daysFeeds = rawFeedData.filter(feed => {
-      const feedDate = new Date(feed.dateTime);
-      return feedDate >= currentDate && feedDate < nextDate;
-    }).sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
+  return allDays.map(({ dateKey, dayStart, dayEnd }) => {
+    const daysFeeds = rawFeedData
+      .filter(feed => {
+        const feedDate = new Date(feed.dateTime);
+        return feedDate >= dayStart && feedDate < dayEnd;
+      })
+      .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
 
     let totalDuration = 0;
     const feedSessions = daysFeeds.map(feed => {
@@ -329,7 +342,7 @@ export const processFeedData = (rawFeedData: FeedData[], rangeDays: number) => {
     });
 
     const stackedData = feedSessions.map((session, index) => ({
-      x: dateStr,
+      x: dateKey,
       y: Math.min(session.duration, MAX_FEED_DURATION),
       type: session.type,
       sessionIndex: index,
@@ -339,7 +352,7 @@ export const processFeedData = (rawFeedData: FeedData[], rangeDays: number) => {
     }));
 
     return {
-      date: dateStr,
+      date: dateKey,
       totalDuration: Math.min(totalDuration, MAX_FEED_DURATION),
       actualDuration: totalDuration,
       sessions: stackedData,
@@ -469,7 +482,7 @@ export const FeedVisualization: React.FC<FeedVisualizationProps> = ({ feedData: 
               axis: { stroke: theme.text },
               grid: { stroke: theme.secondaryText, strokeWidth: 1 }
             }}
-            tickValues={[10, 20, 30, 40, 50, MAX_FEED_DURATION]}
+            tickValues={[15, 30, 45, 60, 75, MAX_FEED_DURATION]}
             tickFormat={(t: number) => t === 0 ? '0' : `${t}m`}
             containerComponent={<VictoryContainer responsive={false} />}
             width={yAxisWidth}
@@ -503,7 +516,7 @@ export const FeedVisualization: React.FC<FeedVisualizationProps> = ({ feedData: 
                   tickLabels: { fill: "transparent" },
                   grid: { stroke: theme.secondaryText, strokeWidth: 1 }
                 }}
-                tickValues={[0, 10, 20, 30, 40, 50, MAX_FEED_DURATION]}
+                tickValues={[15, 30, 45, 60, 75, MAX_FEED_DURATION]}
                 padding={{ top: 20, bottom: 40, left: 0, right: 0 }}
               />
 

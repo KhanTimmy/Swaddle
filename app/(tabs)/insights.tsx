@@ -15,6 +15,7 @@ import CustomModal from '@/components/CustomModal';
 import { generateAndEmailReport, generatePdfFile, sharePdf, type ReportPayload } from '@/services/ReportService';
 import * as FileSystem from 'expo-file-system/legacy';
 import AnimatedCloudBackground from '@/components/AnimatedCloudBackground';
+import { useFocusEffect } from '@react-navigation/native';
 
 const TREND_TYPES = [
   { key: 'sleep', icon: 'power-sleep', label: 'Sleep' },
@@ -109,6 +110,7 @@ export default function InsightsScreen() {
   const [reportSending, setReportSending] = useState(false);
   const hasInsights = !!aiResponse;
   const [includeInsights, setIncludeInsights] = useState(false);
+  const isAuthorizedCaregiver = selectedChild?.type === 'Authorized';
 
   useEffect(() => {
     const unsubscribeAuth = getAuth().onAuthStateChanged((user) => {
@@ -120,6 +122,12 @@ export default function InsightsScreen() {
     });
     return unsubscribeAuth;
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchUserChildrenList();
+    }, [])
+  );
 
   useEffect(() => {
     if (selectedChild) {
@@ -589,61 +597,71 @@ export default function InsightsScreen() {
             onRangeChange={setRangeDays}
           />
 
-          {loading && controller && (
-            <TouchableOpacity
-              style={[styles.fetchButton, { backgroundColor: '#DC3545' }]}
-              onPress={() => {
-                controller.abort();
-                setController(null);
-              }}
-            >
-              <Text style={[styles.fetchButtonText, { color: '#fff' }]}>Cancel</Text>
-            </TouchableOpacity>
-          )}
-
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={theme.tint} />
-              <Text style={[styles.loadingText, { color: theme.secondaryText }]}>
-                Analyzing data...
+          {selectedChild && isAuthorizedCaregiver ? (
+            <View style={[styles.restrictedMessageContainer, { backgroundColor: theme.secondaryBackground }]}>
+              <Text style={[styles.restrictedMessageText, { color: theme.text }]}>
+                To view insights for this section, you need to be this child's parent.
               </Text>
             </View>
           ) : (
-            <View style={styles.buttonRow}>
-              <TouchableOpacity
-                style={[
-                  styles.fetchButton,
-                  { backgroundColor: theme.tint, flex: 1, marginRight: 8, marginTop: 0 },
-                  (!selectedChild || loading) && styles.fetchButtonDisabled
-                ]}
-                onPress={handleFetchInsights}
-                disabled={!selectedChild || loading}
-              >
-                <MaterialCommunityIcons name="brain" size={20} color={selectedChild ? theme.background : theme.secondaryText} />
-                <Text style={[styles.fetchButtonText, { color: selectedChild ? theme.background : theme.secondaryText }]}> 
-                  Build Insights
-                </Text>
-              </TouchableOpacity>
+            <>
+              {loading && controller && (
+                <TouchableOpacity
+                  style={[styles.fetchButton, { backgroundColor: '#DC3545' }]}
+                  onPress={() => {
+                    controller.abort();
+                    setController(null);
+                  }}
+                >
+                  <Text style={[styles.fetchButtonText, { color: '#fff' }]}>Cancel</Text>
+                </TouchableOpacity>
+              )}
 
-              <TouchableOpacity
-                style={[
-                  styles.fetchButton,
-                  { backgroundColor: theme.secondaryBackground, flex: 1, marginTop: 0 },
-                  (!selectedChild || loading) && styles.fetchButtonDisabled
-                ]}
-                onPress={handleOpenReportPrompt}
-                disabled={!selectedChild || loading}
-              >
-                <MaterialCommunityIcons name="file-export" size={20} color={theme.text} />
-                <Text style={[styles.fetchButtonText, { color: theme.text }]}> 
-                  Export PDF
-                </Text>
-              </TouchableOpacity>
-            </View>
+              {loading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color={theme.tint} />
+                  <Text style={[styles.loadingText, { color: theme.secondaryText }]}>
+                    Analyzing data...
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.fetchButton,
+                      { backgroundColor: theme.tint, flex: 1, marginRight: 8, marginTop: 0 },
+                      (!selectedChild || loading) && styles.fetchButtonDisabled
+                    ]}
+                    onPress={handleFetchInsights}
+                    disabled={!selectedChild || loading}
+                  >
+                    <MaterialCommunityIcons name="brain" size={20} color={selectedChild ? theme.background : theme.secondaryText} />
+                    <Text style={[styles.fetchButtonText, { color: selectedChild ? theme.background : theme.secondaryText }]}> 
+                      Build Insights
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.fetchButton,
+                      { backgroundColor: theme.secondaryBackground, flex: 1, marginTop: 0 },
+                      (!selectedChild || loading) && styles.fetchButtonDisabled
+                    ]}
+                    onPress={handleOpenReportPrompt}
+                    disabled={!selectedChild || loading}
+                  >
+                    <MaterialCommunityIcons name="file-export" size={20} color={theme.text} />
+                    <Text style={[styles.fetchButtonText, { color: theme.text }]}> 
+                      Export PDF
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
           )}
         </View>
 
-        {aiResponse && (
+        {!isAuthorizedCaregiver && aiResponse && (
           <View style={styles.aiResponseSection}>
             <ScrollView 
               style={[styles.aiResponseContainer, { backgroundColor: theme.secondaryBackground }]}
@@ -668,7 +686,8 @@ export default function InsightsScreen() {
         </SafeAreaView>
       </AnimatedCloudBackground>
 
-      <CustomModal
+      {!isAuthorizedCaregiver && (
+        <CustomModal
           visible={showReportPrompt}
           onClose={() => setShowReportPrompt(false)}
           title="Generate PDF Report?"
@@ -729,6 +748,7 @@ export default function InsightsScreen() {
             </View>
           </View>
         </CustomModal>
+      )}
     </View>
   );
 }
@@ -848,5 +868,17 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  restrictedMessageContainer: {
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  restrictedMessageText: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

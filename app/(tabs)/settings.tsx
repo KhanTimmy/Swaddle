@@ -9,6 +9,7 @@ import { ChildService, ChildData } from '@/services/ChildService';
 import { router } from 'expo-router';
 import { getAuth } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function SettingsScreen() {
   const { theme, isDark, themeMode, setThemeMode } = useTheme();
@@ -27,6 +28,12 @@ export default function SettingsScreen() {
 
     return () => unsubscribeAuth();
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchUserChildrenList();
+    }, [])
+  );
 
   const fetchUserChildrenList = async () => {
     try {
