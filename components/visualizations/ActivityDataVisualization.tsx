@@ -228,38 +228,54 @@ const BarPopout: React.FC<BarPopoutProps> = ({ data, onClose, position }) => {
 };
 
 export const filteredActivityData = (rawActivityData: ActivityData[], rangeDays: number) => {
+  // Match the graph's local-day range so activity entries don't disappear
+  // near day boundaries or due to UTC/local date mismatches.
   const now = new Date();
-  const startDate = new Date(`${new Date().toISOString().split('T')[0]}T12:00:00`);
+  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
   startDate.setDate(startDate.getDate() - rangeDays + 1);
 
   return rawActivityData
     .filter(activity => {
-      return activity.dateTime >= startDate && activity.dateTime <= now;
+      return activity.dateTime >= startDate && activity.dateTime <= endOfToday;
     })
     .sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime());
 };
 
 export const processActivityData = (rawActivityData: ActivityData[], rangeDays: number) => {
+  // Use local calendar-day boundaries for bucketing so activities don't
+  // shift into adjacent days due to UTC/local conversions.
   const now = new Date();
-  const startDate = new Date(now);
-  startDate.setDate(now.getDate() - rangeDays + 1);
-  startDate.setHours(0, 0, 0, 0);
 
-  const allDates = Array.from({ length: rangeDays }, (_, i) => {
-    const date = new Date(startDate);
-    date.setDate(startDate.getDate() + i);
-    return date.toISOString().split('T')[0];
+  // Start at local midnight rangeDays-1 days ago
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startDate = new Date(startOfToday);
+  startDate.setDate(startOfToday.getDate() - rangeDays + 1);
+
+  // Build an array of day buckets with explicit local start/end and a stable string key
+  const allDays = Array.from({ length: rangeDays }, (_, i) => {
+    const dayStart = new Date(startDate);
+    dayStart.setDate(startDate.getDate() + i);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayStart.getDate() + 1);
+
+    // Format YYYY-MM-DD using local date parts to avoid UTC shifts
+    const dateKey = [
+      dayStart.getFullYear(),
+      String(dayStart.getMonth() + 1).padStart(2, '0'),
+      String(dayStart.getDate()).padStart(2, '0'),
+    ].join('-');
+
+    return { dateKey, dayStart, dayEnd };
   });
 
-  return allDates.map(dateStr => {
-    const currentDate = new Date(dateStr);
-    const nextDate = new Date(currentDate);
-    nextDate.setDate(currentDate.getDate() + 1);
-
-    const daysActivities = rawActivityData.filter(activity => {
-      const activityDate = new Date(activity.dateTime);
-      return activityDate >= currentDate && activityDate < nextDate;
-    }).sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
+  return allDays.map(({ dateKey, dayStart, dayEnd }) => {
+    const daysActivities = rawActivityData
+      .filter(activity => {
+        const activityDate = new Date(activity.dateTime);
+        return activityDate >= dayStart && activityDate < dayEnd;
+      })
+      .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
 
     const activitySessions = daysActivities.map(activity => ({
       dateTime: activity.dateTime,
@@ -267,7 +283,7 @@ export const processActivityData = (rawActivityData: ActivityData[], rangeDays: 
     }));
 
     const stackedData = activitySessions.map((session, index) => ({
-      x: dateStr,
+      x: dateKey,
       y: 1,
       type: session.type,
       sessionIndex: index,
@@ -275,7 +291,7 @@ export const processActivityData = (rawActivityData: ActivityData[], rangeDays: 
     }));
 
     return {
-      date: dateStr,
+      date: dateKey,
       totalCount: Math.min(activitySessions.length, MAX_ACTIVITY_COUNT),
       actualCount: activitySessions.length,
       sessions: stackedData,

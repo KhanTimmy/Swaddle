@@ -52,7 +52,12 @@ const UnifiedDataGraph = ({
           <ActivityVisualization activityData={rawActivityData} rangeDays={rangeDays} onEditRequest={(payload: any) => onEditRequest?.({ type: 'activity', payload })} dataVersion={dataVersion} />
         )}
         {activeDataType === 'milestone' && (
-          <MilestoneVisualization milestoneData={rawMilestoneData} rangeDays={rangeDays} />
+          <MilestoneVisualization
+            milestoneData={rawMilestoneData}
+            rangeDays={rangeDays}
+            onEditRequest={(payload: any) => onEditRequest?.({ type: 'milestone', payload })}
+            dataVersion={dataVersion}
+          />
         )}
         {activeDataType === 'weight' && (
           <WeightVisualization weightData={rawWeightData} rangeDays={rangeDays} onEditRequest={(payload: any) => onEditRequest?.({ type: 'weight', payload })} dataVersion={dataVersion} />

@@ -274,13 +274,16 @@ export const BarPopout: React.FC<BarPopoutProps> = ({ data, onClose, position })
 };
 
 export const filteredFeedData = (rawFeedData: FeedData[], rangeDays: number) => {
+  // Align list filtering with the graph's local-day window so all feeds
+  // in the selected range remain visible and tappable.
   const now = new Date();
-  const startDate = new Date(`${new Date().toISOString().split('T')[0]}T12:00:00`);
+  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
   startDate.setDate(startDate.getDate() - rangeDays + 1);
 
   return rawFeedData
     .filter(feed => {
-      return feed.dateTime >= startDate && feed.dateTime <= now;
+      return feed.dateTime >= startDate && feed.dateTime <= endOfToday;
     })
     .sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime());
 };

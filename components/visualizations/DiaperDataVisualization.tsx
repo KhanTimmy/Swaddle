@@ -335,38 +335,54 @@ const BarPopout: React.FC<BarPopoutProps> = ({ data, onClose, position }) => {
 };
 
 export const filteredDiaperData = (rawDiaperData: DiaperData[], rangeDays: number) => {
+  // Align with the graph's local-day boundaries so all diaper changes in
+  // the selected window are listed, including late-evening entries.
   const now = new Date();
-  const startDate = new Date(`${new Date().toISOString().split('T')[0]}T12:00:00`);
+  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
   startDate.setDate(startDate.getDate() - rangeDays + 1);
 
   return rawDiaperData
     .filter(diaper => {
-      return diaper.dateTime >= startDate && diaper.dateTime <= now;
+      return diaper.dateTime >= startDate && diaper.dateTime <= endOfToday;
     })
     .sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime());
 };
 
 export const processDiaperData = (rawDiaperData: DiaperData[], rangeDays: number) => {
+  // Use local calendar-day boundaries for bucketing so diaper changes
+  // don't shift into adjacent days due to UTC/local conversions.
   const now = new Date();
-  const startDate = new Date(now);
-  startDate.setDate(now.getDate() - rangeDays + 1);
-  startDate.setHours(0, 0, 0, 0);
 
-  const allDates = Array.from({ length: rangeDays }, (_, i) => {
-    const date = new Date(startDate);
-    date.setDate(startDate.getDate() + i);
-    return date.toISOString().split('T')[0];
+  // Start at local midnight rangeDays-1 days ago
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startDate = new Date(startOfToday);
+  startDate.setDate(startOfToday.getDate() - rangeDays + 1);
+
+  // Build an array of day buckets with explicit local start/end and a stable string key
+  const allDays = Array.from({ length: rangeDays }, (_, i) => {
+    const dayStart = new Date(startDate);
+    dayStart.setDate(startDate.getDate() + i);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayStart.getDate() + 1);
+
+    // Format YYYY-MM-DD using local date parts to avoid UTC shifts
+    const dateKey = [
+      dayStart.getFullYear(),
+      String(dayStart.getMonth() + 1).padStart(2, '0'),
+      String(dayStart.getDate()).padStart(2, '0'),
+    ].join('-');
+
+    return { dateKey, dayStart, dayEnd };
   });
 
-  return allDates.map(dateStr => {
-    const currentDate = new Date(dateStr);
-    const nextDate = new Date(currentDate);
-    nextDate.setDate(currentDate.getDate() + 1);
-
-    const daysDiapers = rawDiaperData.filter(diaper => {
-      const diaperDate = new Date(diaper.dateTime);
-      return diaperDate >= currentDate && diaperDate < nextDate;
-    }).sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
+  return allDays.map(({ dateKey, dayStart, dayEnd }) => {
+    const daysDiapers = rawDiaperData
+      .filter(diaper => {
+        const diaperDate = new Date(diaper.dateTime);
+        return diaperDate >= dayStart && diaperDate < dayEnd;
+      })
+      .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
 
     const diaperSessions = daysDiapers.map(diaper => ({
       dateTime: diaper.dateTime,
@@ -379,7 +395,7 @@ export const processDiaperData = (rawDiaperData: DiaperData[], rangeDays: number
     }));
 
     const stackedData = diaperSessions.map((session, index) => ({
-      x: dateStr,
+      x: dateKey,
       y: 1,
       type: session.type,
       sessionIndex: index,
@@ -392,7 +408,7 @@ export const processDiaperData = (rawDiaperData: DiaperData[], rangeDays: number
     }));
 
     return {
-      date: dateStr,
+      date: dateKey,
       totalCount: Math.min(diaperSessions.length, MAX_DIAPER_COUNT),
       actualCount: diaperSessions.length,
       sessions: stackedData,

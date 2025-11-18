@@ -14,6 +14,7 @@ import FeedModal from '../modals/FeedModal';
 import DiaperModal from '../modals/DiaperModal';
 import ActivityModal from '../modals/ActivityModal';
 import WeightModal from '../modals/WeightModal';
+import MilestoneModal from '../modals/MilestoneModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import CornerIndicators from '@/components/CornerIndicators';
 import AnimatedCloudBackground from '@/components/AnimatedCloudBackground';
@@ -44,6 +45,7 @@ export default function Reports() {
     diaper: false,
     activity: false,
     weight: false,
+    milestone: false,
   });
 
   useEffect(() => {
@@ -164,6 +166,9 @@ export default function Reports() {
           case 'weight':
             await ChildUpdateService.updateWeight(selectedChild.id, editContext.entry.docId, updateData);
             break;
+          case 'milestone':
+            await ChildUpdateService.updateMilestone(selectedChild.id, editContext.entry.docId, updateData);
+            break;
         }
       } else {
         // Create new entry
@@ -182,6 +187,9 @@ export default function Reports() {
             break;
           case 'weight':
             await ChildService.addWeight(data);
+            break;
+          case 'milestone':
+            await ChildService.addMilestone(data);
             break;
         }
       }
@@ -239,6 +247,9 @@ export default function Reports() {
           break;
         case 'weight':
           await ChildUpdateService.deleteWeight(selectedChild.id, docId);
+          break;
+        case 'milestone':
+          await ChildUpdateService.deleteMilestone(selectedChild.id, docId);
           break;
       }
       
@@ -383,6 +394,13 @@ export default function Reports() {
         childId={selectedChild?.id}
         initialData={editContext?.type === 'weight' ? editContext.entry : undefined}
         onDelete={editContext?.type === 'weight' ? (docId) => handleDelete('weight', docId) : undefined}
+      />
+
+      <MilestoneModal
+        visible={modalVisibility.milestone}
+        onClose={() => handleModalClose('milestone')}
+        onSave={(data) => handleSave('milestone', data)}
+        childId={selectedChild?.id}
       />
     </View>
   );

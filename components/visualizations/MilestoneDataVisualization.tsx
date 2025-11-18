@@ -48,6 +48,8 @@ interface BarPopoutProps {
 interface MilestoneVisualizationProps {
   milestoneData: MilestoneData[];
   rangeDays: number;
+  onEditRequest?: (payload: MilestoneData) => void;
+  dataVersion?: number;
 }
 
 export const getTypeColor = (type: string) => {
@@ -225,14 +227,16 @@ const BarPopout: React.FC<BarPopoutProps> = ({ data, onClose, position }) => {
 };
 
 export const filteredMilestoneData = (rawMilestoneData: MilestoneData[], rangeDays: number) => {
+  // Use the same local-day range as other trends so milestone entries
+  // fully cover the selected time window.
   const now = new Date();
-  const startDate = new Date();
-  startDate.setDate(now.getDate() - rangeDays + 1);
-  startDate.setHours(0, 0, 0, 0);
+  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  startDate.setDate(startDate.getDate() - rangeDays + 1);
 
   return rawMilestoneData
     .filter(milestone => {
-      return milestone.dateTime >= startDate && milestone.dateTime <= now;
+      return milestone.dateTime >= startDate && milestone.dateTime <= endOfToday;
     })
     .sort((a, b) => b.dateTime.getTime() - a.dateTime.getTime());
 };
@@ -294,13 +298,23 @@ const GraphSkeleton = () => {
   );
 };
 
-export const MilestoneVisualization: React.FC<MilestoneVisualizationProps> = ({ milestoneData: rawMilestoneData, rangeDays }) => {
+export const MilestoneVisualization: React.FC<MilestoneVisualizationProps> = ({
+  milestoneData: rawMilestoneData,
+  rangeDays,
+  onEditRequest,
+  dataVersion
+}) => {
   const [selectedBar, setSelectedBar] = useState<any>(null);
   const [popoutPosition, setPopoutPosition] = useState({ x: 0, y: 0 });
   const scrollViewRef = useRef<ScrollView>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [processedData, setProcessedData] = useState<ReturnType<typeof processMilestoneData>>([]);
   const { theme } = useTheme();
+
+  // Clear selected bar when data changes
+  useEffect(() => {
+    setSelectedBar(null);
+  }, [dataVersion]);
 
   useEffect(() => {
     console.log('[MilestoneVisualization] Processing milestone data...');
@@ -533,7 +547,14 @@ export const MilestoneVisualization: React.FC<MilestoneVisualizationProps> = ({ 
         ) : (
           <FlatList
             data={filteredMilestoneData(rawMilestoneData, rangeDays)}
-            renderItem={({ item }) => <MilestoneEntry milestone={item} />}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => onEditRequest?.(item)}
+              >
+                <MilestoneEntry milestone={item} />
+              </TouchableOpacity>
+            )}
             keyExtractor={(item, index) => `milestone-${index}`}
             style={[styles.milestoneList, { backgroundColor: theme.secondaryBackground }]}
             showsVerticalScrollIndicator={true}
